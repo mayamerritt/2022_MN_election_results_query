@@ -1,0 +1,38 @@
+with fixed_ids_census as(
+  SELECT CONCAT(c.STATEFP20
+  ,lpad(CAST(c.COUNTYFP20 AS STRING),3,"0")
+  ,lpad(CAST(c.TRACTCE20 AS STRING), 6, "0")
+  ,c.BLKGRPCE20) fixed_geoid20
+  ,c.BLKGRPCE20
+  ,c.UACE10
+  ,c.INTPTLAT10
+  ,c.INTPTLON10
+
+  FROM `demsmnsp.commons.blocks_with_UA` c
+),
+
+fixed_ids_pop as(
+  SELECT CONCAT(p.Geo_STATE
+  ,lpad(CAST(p.Geo_COUNTY AS STRING),3,"0")
+  ,lpad(CAST(Geo_CT AS STRING),6,"0")
+  ,CAST(regexp_extract(p.Geo_NAME, r"^\D*(\d+)")AS STRING)) fixed_geoid20
+  ,p.pop_density_2020
+  ,p.Quartile
+  FROM `demsmnsp.commons.pop_density_block` p
+)
+
+
+SELECT fixed_ids_pop.fixed_geoid20
+,fixed_ids_census.fixed_geoid20
+,pop_density_2020
+,Quartile
+,fixed_ids_census.BLKGRPCE20
+,fixed_ids_census.UACE10
+,fixed_ids_census.INTPTLAT10
+,fixed_ids_census.INTPTLON10
+
+FROM fixed_ids_pop
+LEFT JOIN fixed_ids_census
+ON fixed_ids_census.fixed_geoid20 = fixed_ids_pop.fixed_geoid20
+
+WHERE fixed_ids_census.fixed_geoid20 IS NOT NULL
