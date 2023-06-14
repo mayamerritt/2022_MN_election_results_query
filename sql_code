@@ -1,0 +1,76 @@
+with gov_votes as(SELECT county_code_raw
+,precinct_code_raw
+,office_name
+,candidate
+,party
+,votes_for_candidate
+
+FROM `demsmnsp.commons.results22_eday_from_sos_csv_version` results
+WHERE
+office_name LIKE "%Governor & Lt Governor%"
+AND party = "DFL"),
+
+sos_votes as(SELECT county_code_raw
+,precinct_code_raw
+,office_name
+,candidate
+,party
+,votes_for_candidate
+
+FROM `demsmnsp.commons.results22_eday_from_sos_csv_version` results
+WHERE 
+office_name LIKE "%Secretary of State%"
+AND party = "DFL"),
+
+ag_votes as(SELECT county_code_raw
+,precinct_code_raw
+,office_name
+,candidate
+,party
+,votes_for_candidate
+
+FROM `demsmnsp.commons.results22_eday_from_sos_csv_version` results
+WHERE 
+office_name LIKE "%Attorney General%"
+AND party = "DFL"),
+
+auditor_votes as(SELECT county_code_raw
+,precinct_code_raw
+,office_name
+,candidate
+,party
+,votes_for_candidate
+
+FROM `demsmnsp.commons.results22_eday_from_sos_csv_version` results
+WHERE 
+office_name LIKE "%State Auditor%"
+AND party = "DFL")
+
+SELECT eday.County_Name
+,initcap(Precinct_Name) as Precinct_Name
+,gov_votes.county_code_raw, gov_votes.precinct_code_raw
+,gov_votes.votes_for_candidate votes_for_governor
+,sos_votes.votes_for_candidate votes_for_secretary_of_state
+,ag_votes.votes_for_candidate votes_for_attorney_general
+,auditor_votes.votes_for_candidate votes_for_auditor
+,(gov_votes.votes_for_candidate+sos_votes.votes_for_candidate+ag_votes.votes_for_candidate+auditor_votes.votes_for_candidate)/4 cav
+--,counties.max_dfl_votes_by_county
+,CASE WHEN eday.county_name IS NOT NULL THEN 'US-MN' ELSE NULL END AS state_code
+
+FROM gov_votes
+LEFT JOIN sos_votes 
+ON gov_votes.precinct_code_raw = sos_votes.precinct_code_raw
+  AND gov_votes.county_code_raw = sos_votes.county_code_raw
+LEFT JOIN ag_votes 
+ON gov_votes.precinct_code_raw = ag_votes.precinct_code_raw
+  AND gov_votes.county_code_raw = ag_votes.county_code_raw
+LEFT JOIN auditor_votes 
+ON gov_votes.precinct_code_raw = auditor_votes.precinct_code_raw
+  AND gov_votes.county_code_raw = auditor_votes.county_code_raw 
+LEFT JOIN `demsmnsp.commons.eday_precinct_lookups` eday
+ON gov_votes.precinct_code_raw = eday.Precinct_Code
+  AND gov_votes.county_code_raw = eday.County_Code
+LEFT JOIN `demsmnsp.commons.county_votes_project` counties
+ON gov_votes.county_code_raw = counties.county_code_raw
+GROUP BY 1,2,3,4,5,6,7,8,9,10
+ 
